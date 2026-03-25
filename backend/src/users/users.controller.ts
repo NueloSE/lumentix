@@ -12,6 +12,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -22,6 +23,7 @@ import { Roles } from 'src/admin/roles.decorator';
 import { UserRole } from './enums/user-role.enum';
 
 @ApiTags('Users')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
@@ -29,11 +31,18 @@ export class UsersController {
 
   @Post()
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create a new user', description: 'Admin-only endpoint to create users.' })
+  @ApiResponse({ status: 201, description: 'User successfully created.' })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Requires Admin role.' })
   async create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.createUser(createUserDto);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Find a user by ID', description: 'Retrieves user details.' })
+  @ApiResponse({ status: 200, description: 'User found.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
   async findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
@@ -41,20 +50,22 @@ export class UsersController {
   // ── Wallet ─────────────────────────────────────────────────────────────────
 
   @Get('wallet/balances')
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get all wallet balances for the authenticated user',
   })
+  @ApiResponse({ status: 200, description: 'Balances retrieved.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async getWalletBalances(@Req() req: AuthenticatedRequest) {
     return this.usersService.getWalletBalances(req.user.id);
   }
 
   @Get('wallet/portfolio')
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get total portfolio value converted to a base currency',
   })
   @ApiQuery({ name: 'base', required: false, example: 'USD' })
+  @ApiResponse({ status: 200, description: 'Portfolio value retrieved.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async getPortfolioValue(
     @Req() req: AuthenticatedRequest,
     @Query('base') baseCurrency: string = 'USD',
