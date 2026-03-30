@@ -12,10 +12,12 @@ import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserRole } from '../users/enums/user-role.enum';
-import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { BruteForceService } from '../common/services/brute-force.service';
 import { ListAdminUsersDto } from './dto/list-admin-users.dto';
 import { ListAdminEventsDto } from './dto/list-admin-events.dto';
+import { PaginationDto } from '../common/pagination/dto/pagination.dto';
+import { RoleRequestStatus } from '../users/entities/role-request.entity';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -77,5 +79,27 @@ export class AdminController {
   @ApiOperation({ summary: 'Get all events (admin only)' })
   listAllEvents(@Query() dto: ListAdminEventsDto) {
     return this.adminService.listAllEvents(dto);
+  // ── Role Requests ─────────────────────────────────────────────────────────
+
+  @Get('role-requests')
+  @ApiOperation({ summary: 'List role upgrade requests' })
+  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'approved', 'rejected'] })
+  listRoleRequests(
+    @Query() paginationDto: PaginationDto,
+    @Query('status') status?: RoleRequestStatus,
+  ) {
+    return this.adminService.listRoleRequests({ ...paginationDto, status });
+  }
+
+  @Patch('role-requests/:id/approve')
+  @ApiOperation({ summary: 'Approve a role upgrade request' })
+  approveRoleRequest(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.approveRoleRequest(id);
+  }
+
+  @Patch('role-requests/:id/reject')
+  @ApiOperation({ summary: 'Reject a role upgrade request' })
+  rejectRoleRequest(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.rejectRoleRequest(id);
   }
 }

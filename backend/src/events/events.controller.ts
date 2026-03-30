@@ -26,6 +26,7 @@ import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { ListEventsDto } from './dto/list-events.dto';
+import { DuplicateEventDto } from './dto/duplicate-event.dto';
 import { Roles, Role } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -114,6 +115,19 @@ export class EventsController {
     return this.eventsService.deleteEvent(id, req.user.id);
   }
 
+  @Post(':id/cancel')
+  @Roles(Role.ORGANIZER)
+  @ApiOperation({ summary: 'Cancel an event', description: 'Organizer-only. Cancels the event and automatically triggers refunds.' })
+  @ApiResponse({ status: 201, description: 'Event cancelled' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Event not found' })
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.eventsService.cancelEvent(id, req.user.id);
+  }
+
   @Get(':eventId/tickets')
   @Roles(Role.ORGANIZER)
   @ApiOperation({ summary: 'Get event tickets', description: 'Organizer-only. Lists all tickets sold for the event.' })
@@ -135,5 +149,26 @@ export class EventsController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.ticketsService.getEventTicketSummary(eventId, req.user.id);
+  }
+
+  @Post(':id/image')
+  @Roles(Role.ORGANIZER)
+  @UseInterceptors(FileInterceptor('image', { storage: undefined }))
+  uploadImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.eventsService.updateEventImage(id, file, req.user.id);
+  }
+
+  @Post(':id/duplicate')
+  @Roles(Role.ORGANIZER)
+  duplicate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DuplicateEventDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.eventsService.duplicateEvent(id, dto, req.user.id);
   }
 }
